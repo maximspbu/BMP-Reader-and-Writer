@@ -62,6 +62,12 @@ struct BMP{
     void rotateBMP_l(){
         vector<char> copy_matrix(matrix.size());
         for (int x = 0; x<matrix.size(); x++){
+            //int i = x/(3*infoHeader.width);
+            //int j = (x%(3*infoHeader.width))/3;
+            //int new_j = i;
+            //int new_i = infoHeader.width - 1 - j;
+            //int coords = x%3 + 3*(new_i*infoHeader.height+new_j);
+            //copy_matrix[coords] = matrix[x];
             copy_matrix[x%3 + 3*(((x%(3*infoHeader.width))/3)*infoHeader.height+infoHeader.height - 1 - x/(3*infoHeader.width))] = matrix[x];
         }
         swap(infoHeader.height, infoHeader.width);
@@ -105,8 +111,7 @@ struct BMP{
     }
 
     double *generate_coeff(int radius, double sigma){
-        double *coeff = new double[8*radius*radius];
-        // double *coeff = malloc(sizeof(double)*radius*radius)
+        double *coeff = new double[sizeof(double)*radius*radius];
         double sum = 0;
         for (int i = 0; i<radius; i++){
             for (int j = 0; j<radius; j++){
@@ -114,7 +119,7 @@ struct BMP{
                 sum+=coeff[i*radius+j];
             }
         }
-        for (int i = 0; i<radius*radius;i++){
+        for (int i = 0; i<radius*radius; i++){
             coeff[i] /= sum;
         }
         return coeff;
@@ -124,15 +129,21 @@ struct BMP{
         double sigma = 1.0;
         int radius = 5;
         int b, g, r;
+        int coord=0;
         double* coeff = generate_coeff(radius, sigma);
-        for (int i = 0; i < 3*infoHeader.height; i++){ // 3*
-            for (int j = 0; j < 3*infoHeader.width; j++){ // 3*
+        for (int i = 0; i < 2*infoHeader.width; i++){
+            for (int j = 0; j < 3*infoHeader.height; j+=3){
                 b = g = r = 0;
                 for (int m = 0; m < radius; m++){
                     for (int n = 0; n < radius; n++){
-                        b += coeff[m*radius+n] * matrix[(i+m)*infoHeader.width + (j+n)];
-                        g += coeff[m*radius+n] * matrix[(i+m)*infoHeader.width + (j+1+n)];
-                        r += coeff[m*radius+n] * matrix[(i+m)*infoHeader.width + (j+2+n)];
+                        coord = infoHeader.width*(i+m)+j;
+                        if (coord+3*n<0 || coord+2+3*n>matrix.size()) continue;
+                        b += coeff[m*radius+n] * matrix[coord + 3*n];
+                        g += coeff[m*radius+n] * matrix[coord+1 + 3*n];
+                        r += coeff[m*radius+n] * matrix[coord+2 + 3*n];
+                        //b += coeff[m*radius+n] * matrix[(i+m)*infoHeader.width + (j+n)];
+                        //g += coeff[m*radius+n] * matrix[(i+m)*infoHeader.width + (j+1+n)];
+                        //r += coeff[m*radius+n] * matrix[(i+m)*infoHeader.width + (j+2+n)];
                         //b += coeff[m * radius + n] * matrix[0 + (i+m)*infoHeader.width + (j + 3*n)];
                         //g += coeff[m * radius + n] * matrix[1 + (i+m)*infoHeader.width + (j + 3*n)];
                         //r += coeff[m * radius + n] * matrix[2 + (i+m)*infoHeader.width + (j + 3*n)];
@@ -149,8 +160,8 @@ struct BMP{
 int main(){
     BMP bmp;
     bmp.readBMP("dwsample-bmp-640.bmp");
-    bmp.rotateBMP_r();
-    //bmp.gauss();
+    //bmp.rotateBMP_r();
+    bmp.gauss();
     bmp.writeBMP("sample2_out.bmp");
     return 0;
 }

@@ -2,6 +2,10 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+/* Так делать не стоит из-за конфликтов имен. Пусть у тебя есть функция с именем как у функции, 
+ * которая орпеделена в стд. Тогда при вызове узнать, какая из эти двух функций на самом деле 
+ * вызывается будет сложно. А вот если бы функцию из стд ты вызывал std::func(), то такой проблемы
+ * возникнуть не может */
 using namespace std;
 
 #pragma pack(push, 1) // выравнивание размера полей для структуры
@@ -26,7 +30,7 @@ struct BMPInfoHeader{
     uint32_t colors_used{0};
     uint32_t colors_important{0};
 };
-
+/* Структуру стоило бы перенести в отдельный файл. Определения ее методов в соответствующий cpp */
 struct BMP{
     BMPFileHeader fileHeader;
     BMPInfoHeader infoHeader;
@@ -68,6 +72,7 @@ struct BMP{
             //int new_i = infoHeader.width - 1 - j;
             //int coords = x%3 + 3*(new_i*infoHeader.height+new_j);
             //copy_matrix[coords] = matrix[x];
+            /* Такие громоздкие выражения стоит разделять на несколько, чтобы было читабельнее */
             copy_matrix[x%3 + 3*(((x%(3*infoHeader.width))/3)*infoHeader.height+infoHeader.height - 1 - x/(3*infoHeader.width))] = matrix[x];
         }
         swap(infoHeader.height, infoHeader.width);
@@ -96,6 +101,9 @@ struct BMP{
                     new_stride++;
                 }
                 vector<char> padding_row(new_stride - row_stride);
+                /* Если у тебя повторяются в коде несколько раз одни и те же несколько строчек, то стоит
+                 * оформить их в отдельную функцию. В принципе это может стать приватной вспомогательной функцией
+                 * записи загловка */
                 of.write((const char*)&fileHeader, sizeof(fileHeader));
                 of.write((const char*)&infoHeader, sizeof(infoHeader));
                 for (int y = 0; y < infoHeader.height; ++y){
@@ -131,6 +139,8 @@ struct BMP{
         int b, g, r;
         int coord=0;
         double* coeff = generate_coeff(radius, sigma);
+        /* Довольно сильная вложенность, такое стоит как-то разделять. Введением вспомогательной функции
+         * или еще как-то */
         for (int i = 0; i < 2*infoHeader.width; i++){
             for (int j = 0; j < 3*infoHeader.height; j+=3){
                 b = g = r = 0;

@@ -123,37 +123,47 @@ struct BMP{
     vector<double> generate_coeff2(int radius, double sigma){
         vector<double> coeff(sizeof(double)*radius*radius);
         double sum = 0;
-        for (int i = 0; i<radius; i++){
-            for (int j = 0; j<radius; j++){
-                coeff[i*radius+j] = gaussianModel(i-radius, j-radius/2, sigma) /(M_PI*2*sigma*sigma);
-                sum+=coeff[i*radius+j];
+        int x;
+        for (int i = -radius/2; i<radius/2+1; i++){
+            for (int j = -radius/2; j<radius/2+1; j++){
+                //coeff[(i+radius/2)*radius+j+radius/2] = gaussianModel(i, j, sigma)/(M_PI*2*sigma*sigma);
+                coeff[(i+radius/2)*radius+j+radius/2] = exp(-radius*(i*i+j*j)/(2*sigma*sigma));
+                sum+=coeff[(i+radius/2)*radius+j+radius/2];
             }
         }
+        double ch = 0;
         for (int i = 0; i<radius*radius; i++){
             coeff[i] /= sum;
+            ch+=coeff[i];
+            cout << i << ": " << coeff[i] << endl;
         }
+        cout << ch << endl;
         return coeff;
     }
 
     vector<char> gauss(vector<char> matrix){
         vector<char> copy_matrix(matrix.size());
-        double sigma = 1.0;
-        int radius = 5;
-        int b, g, r;
+        double sigma = 0.6;
+        int radius = 3;
+        double b, g, r;
         vector<double> coeff = generate_coeff2(radius, sigma);
-        for (int i = 0; i < 3*info_header.width; i++){
-            for (int j = 0; j < 3*info_header.height; j+=3){
+        for (int i = radius/2; i < 3*(info_header.width-radius/2); i++){
+            for (int j = (radius/2); j < (info_header.height-(radius/2)); j++){
                 b = g = r = 0;
-                for (int m = 0; m < radius; m++){
-                    for (int n = 0; n < radius; n++){
-                        b += coeff[m * radius + n] * matrix[0 + ((i+m)*info_header.height + (j+3*n))];
-                        g += coeff[m * radius + n] * matrix[1 + ((i+m)*info_header.height + (j+3*n))];
-                        r += coeff[m * radius + n] * matrix[2 + ((i+m)*info_header.height + (j+3*n))];
+                for (int m = -radius/2; m < radius/2+1; m++){
+                    for (int n = -radius/2; n < radius/2+1; n++){
+                        //if ((m+i/3>info_header.width)||(n*3+j>info_header.height*3)) continue;
+                        b += coeff[(m+radius/2) * radius + n+radius/2] * matrix[0 + ((i+m)*info_header.height + 3*(j+n))];
+                        g += coeff[(m+radius/2) * radius + n+radius/2] * matrix[1 + ((i+m)*info_header.height + 3*(j+n))];
+                        r += coeff[(m+radius/2) * radius + n+radius/2] * matrix[2 + ((i+m)*info_header.height + 3*(j+n))];
                     }
                 }
-                copy_matrix[(i*info_header.height + j) + 0] = b;
-                copy_matrix[(i*info_header.height + j) + 1] = g;
-                copy_matrix[(i*info_header.height + j) + 2] = r;
+                if (abs(matrix[i*info_header.height+j]-copy_matrix[i*info_header.height+j])>100){
+
+                }
+                copy_matrix[(i*info_header.height + 3*j) + 0] = (int)b;
+                copy_matrix[(i*info_header.height + 3*j) + 1] = (int)g;
+                copy_matrix[(i*info_header.height + 3*j) + 2] = (int)r;
             }
         }
         return copy_matrix;

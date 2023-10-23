@@ -32,7 +32,7 @@ struct BMPInfoHeader{
 struct BMP{
     BMPFileHeader file_header;
     BMPInfoHeader info_header;
-
+    vector<uint8_t> matrix;
     vector<uint8_t> padding(int* row_stride){
         *row_stride = info_header.width*3; // для считывания с учетом отступов
         uint32_t new_stride = *row_stride;
@@ -43,14 +43,14 @@ struct BMP{
         return padding_row;
     }
 
-    vector<uint8_t> read_bmp(const char* path){
+    void read_bmp(const char* path){
         ifstream fs{path, ios_base::binary};
         if (fs.is_open()){
             fs.read((char*)&file_header, sizeof(file_header));
             fs.read((char*)&info_header, sizeof(info_header));
             fs.seekg(file_header.offset_data, fs.beg); // перемещаем указатель на место в файле, где записаны пиксели
             file_header.file_size = file_header.offset_data; // для подсчета размера файла мы пока считаем только размер заголовка
-            vector<uint8_t> matrix(info_header.width*info_header.height*3);
+            matrix.resize(info_header.width*info_header.height*3);
             if (info_header.width%4==0){
                 fs.read((char*)matrix.data(), matrix.size());
                 file_header.file_size += (uint32_t)(matrix.size()); // размер файла уже с учетом вектора пикселей
@@ -64,12 +64,12 @@ struct BMP{
                 file_header.file_size += (uint32_t)(matrix.size()) + info_header.height*(uint32_t)(padding_row.size());
             }
             fs.close();
-            return matrix;
-        }
+        } else {
         cout << "No such file found" << endl;
         exit(0);
+        }
     }
-    vector<uint8_t> rotate_bmp_l(vector<uint8_t> matrix){
+    void rotate_bmp_l(){
         vector<uint8_t> copy_matrix(matrix.size());
         int i, j, new_j, coords;
         for (int x = 0; x<matrix.size(); x++){
@@ -79,11 +79,11 @@ struct BMP{
             coords = x%3 + 3*(j*info_header.height+new_j);
             copy_matrix[coords] = matrix[x];
         }
+        matrix=copy_matrix;
         swap(info_header.height, info_header.width);
-        return copy_matrix;
     }
 
-    vector<uint8_t> rotate_bmp_r(vector<uint8_t> matrix){
+    void rotate_bmp_r(){
         vector<uint8_t> copy_matrix(matrix.size());
         int i, j, new_i, coords;
         for (int x = 0; x<matrix.size(); x++){
@@ -93,11 +93,11 @@ struct BMP{
             coords = x%3 + 3*(new_i*info_header.height+i);
             copy_matrix[coords] = matrix[x];
         }
+        matrix = copy_matrix;
         swap(info_header.height, info_header.width);
-        return copy_matrix;
     }
 
-    void write_bmp(const char *fname, vector<uint8_t> matrix){
+    void write_bmp(const char *fname){
         ofstream of{fname, ios_base::binary};
         if (info_header.width%4==0){
             of.write((const char*)&file_header, sizeof(file_header));
@@ -136,7 +136,7 @@ struct BMP{
         return coeff;
     }
 
-    vector<uint8_t> gauss(vector<uint8_t> matrix){
+    void gauss(){
         vector<uint8_t> copy_matrix(matrix.size());
         double sigma = 2.0;
         int radius = 5;
@@ -157,15 +157,14 @@ struct BMP{
                 copy_matrix[3*(i*info_header.width + j) + 2] = (uint8_t)r;
             }
         }
-        return copy_matrix;
+        matrix = copy_matrix;
     }
 };
 
 int main(){
     BMP bmp;
-    vector<uint8_t> data = bmp.read_bmp("sample2.bmp");
-    //vector<uint8_t> data_l = bmp.rotate_bmp_l(data);
-    vector<uint8_t> data_gauss = bmp.gauss(data);
-    bmp.write_bmp("sample2_out.bmp", data_gauss);
+    bmp.read_bmp("sample2.bmp");
+    bmp.gauss();
+    bmp.write_bmp("sample2_out.bmp");
     return 0;
 }

@@ -2,9 +2,22 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+/* Так не надо: https://stackoverflow.com/questions/4103086/defining-constants-in-c*/
 # define M_PI           3.14159265358979323846
+/* Так делать не стоит из-за конфликтов имен. Пусть у тебя есть функция с именем как у функции, 
+ * которая орпеделена в стд. Тогда при вызове узнать, какая из эти двух функций на самом деле 
+ * вызывается будет сложно. А вот если бы функцию из стд ты вызывал std::func(), то такой проблемы
+ * возникнуть не может */
 using namespace std;
-
+/* Следует разбивать программу на файлы. Во первых, просто ради
+ * организации кода. Во вторых, чтобы была возможность проводить
+ * раздельную компиляцию. Стоит помещать каждый класс\структуру 
+ * в отдельный .h файл, а определения их методов в .cpp. Тогда
+ * при изменении реализации какой-то функции придется перекомпили-
+ * ровать только этот .cpp файл. Если определение было в заголовке,
+ * то придется перекомпилировать все файлы, в которые включен заголо-
+ * вок (в крупном проекте это может сократить время компиляции на
+ * несколько часов) */
 #pragma pack(push, 1) // выравнивание размера полей для структуры
 struct BMPFileHeader{
     uint16_t file_type{ 0x4D42 };
@@ -29,6 +42,7 @@ struct BMPInfoHeader{
     uint32_t colors_important{0};
 };
 #pragma pack(pop)
+/* Стоит сделать классом */
 struct BMP{
     BMPFileHeader file_header;
     BMPInfoHeader info_header;
@@ -48,6 +62,9 @@ struct BMP{
         if (fs.is_open()){
             fs.read((char*)&file_header, sizeof(file_header));
             fs.read((char*)&info_header, sizeof(info_header));
+             /* Между заголовком и пикселями остались данные, которые ты не прочитала. 
+              * Поэтому на моем компьютере твоя программа вовсе не работает. Эти данные
+              * следовало считать, чтобы потом без изменений записать. А то потеряли*/
             fs.seekg(file_header.offset_data, fs.beg); // перемещаем указатель на место в файле, где записаны пиксели
             file_header.file_size = file_header.offset_data; // для подсчета размера файла мы пока считаем только размер заголовка
             matrix.resize(info_header.width*info_header.height*3);
@@ -142,6 +159,9 @@ struct BMP{
         int radius = 5;
         double b, g, r;
         vector<double> coeff = generate_coeff2(radius, sigma);
+         /* Получилась довольно сильная вложенность циклов. Такое следует разбивать, возможно с использованием
+          * вспомогательной функции. И вероятно, у нее будет много параметров. Однако нужно стремиться к тому,
+          * чтобы у функции было не больше 5 параметров. Так что какие-то придется объединить в одну структуру */
         for (int i = radius/2; i < (info_header.height-radius/2); i++){
             for (int j = (radius/2); j < (info_header.width-radius/2); j++){
                 b = g = r = 0;
@@ -163,7 +183,7 @@ struct BMP{
 
 int main(){
     BMP bmp;
-    bmp.read_bmp("sample2.bmp");
+    bmp.read_bmp("test3.bmp");
     bmp.gauss();
     bmp.write_bmp("sample2_out.bmp");
     return 0;
